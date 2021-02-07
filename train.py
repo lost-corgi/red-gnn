@@ -45,7 +45,7 @@ def train(args, device, data):
             blocks = [blk.int().to(device) for blk in blocks]
 
             # Load the input features as well as output labels
-            batch_inputs, batch_labels = load_subtensor(entity_features, labels, seeds, input_nodes, label_entity)
+            batch_inputs, batch_labels = load_subtensor(entity_features, labels, seeds, input_nodes, label_entity, args.is_pad)
 
             # Compute loss and prediction
             batch_pred = model(blocks, batch_inputs)[label_entity]

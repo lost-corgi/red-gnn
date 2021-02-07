@@ -34,8 +34,9 @@ if __name__ == '__main__':
                            help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
+    argparser.add_argument('--is-pad', type=bool, default=True)
     # argparser.add_argument('--loss-func', type=str, default='BCELoss')  # TODO: modify train.py to take args.loss_func
-    argparser.add_argument('--use-label-subgraph', type=bool, default=True)
+    # argparser.add_argument('--use-label-subgraph', type=bool, default=True)
 
     argparser.add_argument('--user-table', type=str,
                            default='dm_as_gnn_user_interact_note_user_normalized_feature_7d_inc')
@@ -90,26 +91,26 @@ if __name__ == '__main__':
     num_user_feature = user_features.shape[1]
     num_device_feature = device_features.shape[1]
 
-    if args.use_label_subgraph:
-        idxs = np.arange(labels.shape[0])
-        np.random.shuffle(idxs)
-        train_idx, val_idx, test_idx = idxs[val_num + test_num:], idxs[:val_num], idxs[val_num:val_num + test_num]
-
-        g = dgl.node_subgraph(g, {args.label_entity: labels[:, 0]})
-        user_features = user_features[labels[:, 0]]
-        device_features = device_features[g.nodes['device'].data[dgl.NID]]
-        labels = torch.tensor(labels[:, 1], dtype=np.int64, device=device)
-    else:
-        np.random.shuffle(labels)
-        train_idx, val_idx, test_idx = \
-            labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
-        expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
-        expand_labels[labels[:, 0]] = labels[:, 1]
-        labels = torch.tensor(expand_labels, device=device)
-    print(g)
-
-    user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
-    device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
+    # if args.use_label_subgraph:
+    #     idxs = np.arange(labels.shape[0])
+    #     np.random.shuffle(idxs)
+    #     train_idx, val_idx, test_idx = idxs[val_num + test_num:], idxs[:val_num], idxs[val_num:val_num + test_num]
+    #     g = dgl.node_subgraph(g, {args.label_entity: labels[:, 0], })
+    #     user_features = user_features[labels[:, 0]]
+    #     device_features = device_features[g.nodes['device'].data[dgl.NID]]
+    #     labels = torch.tensor(labels[:, 1], dtype=torch.int64, device=device)
+    # else:
+    np.random.shuffle(labels)
+    train_idx, val_idx, test_idx = \
+        labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
+    expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
+    expand_labels[labels[:, 0]] = labels[:, 1]
+    labels = torch.tensor(expand_labels, device=device)
+    #
+    # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
+    # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
+    user_features = torch.tensor(user_features, device=device, dtype=torch.float32)
+    device_features = torch.tensor(device_features, device=device, dtype=torch.float32)
 
     entity_features = {'user': user_features, 'device': device_features}
 

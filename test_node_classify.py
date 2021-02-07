@@ -62,6 +62,7 @@ if __name__ == '__main__':
     # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     g.create_formats_()
 
+    # test entity with different feature size, however
     entity_features = {entity: th.randn(g.nodes(entity).shape[0], args.input_dim, device=device) for entity in g.ntypes}
 
     data = train_idx, val_idx, test_idx, args.input_dim, labels, num_classes, entity_features, g, category
