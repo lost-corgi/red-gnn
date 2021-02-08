@@ -287,16 +287,3 @@ fig, ax = plt.subplots()
 nx.draw(graph.to_networkx(), ax=ax)
 ax.set_title('Class: {:d}'.format(label))
 plt.show()
-
-
-import networkx as nx
-import matplotlib.pyplot as plt
-import torch
-import dgl
-
-N = 100  # number of nodes
-K = 10000  # number of iterations
-g = nx.erdos_renyi_graph(N, 0.01)  #生成一个随机图
-nx.draw(g, node_size=50, node_color=[[.5, .5, .5,]])
-g = dgl.DGLGraph(g)  # 转化为dgl的图  g_nx.to_networkx()  g_dgl.from_networkx(G)
-plt.show()

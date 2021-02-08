@@ -113,22 +113,15 @@ def plot_p_r_curve(y_true, y_pred_prob,best_logits,train_idx,val_idx):
     plt.savefig("gcn_tg.png")
 
 
-
-# In[2]:
-
-
-import networkx as nx
 import pandas as pd
 import s3fs
 import pyarrow.parquet as pq
 import numpy as np
 import pyarrow as pa
 import os
-import networkx as nx 
 import random
 import dgl
 import torch as th
-s3 = s3fs.S3FileSystem()
 import torch
 import pandas as pd
 import dgl.function as fn
@@ -137,6 +130,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 
+s3 = s3fs.S3FileSystem()
+
+device = "cpu"
+def assign_a_gpu(gpu_no):
+    device = torch.device("cuda:%s"%(str(gpu_no)) if torch.cuda.is_available() else "cpu")
+    return device
 
 def train_model(net,g,train_mask,test_mask,epoch_num,lr_rate,label_column):
     import time
@@ -181,63 +180,12 @@ def train_model(net,g,train_mask,test_mask,epoch_num,lr_rate,label_column):
     return net
 
 
-relations_list = []
-relations_data_list  = []
-
-path_1 =  's3://xhs.swap/user/hadoop/temp_s3/chuixue_user_use_relations_4_28_to_4_30'
-relations_1 = pq.ParquetDataset(path_1,filesystem=s3).read().to_pandas()
-relation_1_foward_edge = list(zip(relations_1.node_1.values, relations_1.node_2.values))
-relation_1_back_edge = list(zip(relations_1.node_2.values, relations_1.node_1.values))
-relations_list.append(('user', 'use', 'user_use'))
-relations_list.append(('user_use', 'use by', 'user'))
-relations_data_list.append(relation_1_foward_edge)
-relations_data_list.append(relation_1_back_edge)
-
-
-path_1 =  's3://xhs.swap/user/hadoop/temp_s3/chuixue_user_note_relations_4_28_to_4_30'
-relations_1 = pq.ParquetDataset(path_1,filesystem=s3).read().to_pandas()
-relation_1_foward_edge = list(zip(relations_1.node_1.values, relations_1.node_2.values))
-relation_1_back_edge = list(zip(relations_1.node_2.values, relations_1.node_1.values))
-relations_list.append(('user', 'interact', 'note'))
-relations_list.append(('note', 'interact by', 'user'))
-relations_data_list.append(relation_1_foward_edge)
-relations_data_list.append(relation_1_back_edge)
-
-
-graph_4_28_to_4_30 = build_graph(relations_list,relations_data_list)
-
-
-# In[15]:
-
-
-import pickle
-
-f = open('/apps/chuixue/graph_4_28_to_4_30', 'wb')
-pickle.dump(graph_4_28_to_4_30, f)
-
-
-# In[8]:
-
-
-#import pickle
-#f = open('/apps/chuixue/graph_4_28_to_4_30', 'rb')
-#graph_4_28_to_4_30 = pickle.load(f)
-
-
-# In[9]:
-
-
 pos_label_path =  's3://xhs.swap/user/hadoop/temp_s3/graph_black_label_4_28_to_4_30'
 neg_label_path = 's3://xhs.swap/user/hadoop/temp_s3/graph_white_label_4_28_to_4_30_filter'
 label_column = 'user'
 pos_train_ratio = 0.8 #0.8  #0.8
 neg_train_ratio = 0.9 #0.9  #0.9 #0.8
 train_idx_4_28_to_4_30, val_idx_4_28_to_4_30, train_labels_4_28_to_4_30, valid_labels_4_28_to_4_30 = build_labels(pos_label_path,neg_label_path,label_column,pos_train_ratio,neg_train_ratio)
-
-
-# In[10]:
-
-
 
 
 

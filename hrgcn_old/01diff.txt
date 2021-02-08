@@ -1,0 +1,159 @@
+82a83
+>     
+112,115d112
+< 
+< # In[2]:
+< 
+< 
+171c168
+<             #xavier_uniform_(embed) 如何可自动设置
+---
+>             #xavier_uniform_(embed) 如何可自动设置 
+174,175c171,172
+< 
+< 
+---
+>         
+>             
+188,189c185,186
+< #add softmax here
+<         return h_dict,h_dict_2    #['user'] #改成通用的
+---
+> #add softmax here 
+>         return h_dict,h_dict_2    #['user'] #改成通用的 
+194c191
+<     i = 0
+---
+>     i = 0 
+201c198
+< 
+---
+>     
+213d209
+< 
+215c211
+< 
+---
+>     
+217c213
+<     neg_df = pq.ParquetDataset(neg_label_path,filesystem=s3).read().to_pandas()
+---
+>     neg_df = pq.ParquetDataset(neg_label_path,filesystem=s3).read().to_pandas() 
+221c217
+<     print("neg_list:",np.max(neg_u_list))
+---
+>     print("neg_list:",np.max(neg_u_list))   
+225c221
+< 
+---
+>     
+241c237
+< 
+---
+>   
+250c246
+< 
+---
+>  
+253c249
+< 
+---
+>     
+256a253,255
+> # In[7]:
+> 
+> 
+300,323c299
+< relations_list = []
+< relations_data_list  = []
+< 
+< path_1 =  's3://xhs.swap/user/hadoop/temp_s3/chuixue_user_use_relations_4_28_to_4_30'
+< relations_1 = pq.ParquetDataset(path_1,filesystem=s3).read().to_pandas()
+< relation_1_foward_edge = list(zip(relations_1.node_1.values, relations_1.node_2.values))
+< relation_1_back_edge = list(zip(relations_1.node_2.values, relations_1.node_1.values))
+< relations_list.append(('user', 'use', 'user_use'))
+< relations_list.append(('user_use', 'use by', 'user'))
+< relations_data_list.append(relation_1_foward_edge)
+< relations_data_list.append(relation_1_back_edge)
+< 
+< 
+< path_1 =  's3://xhs.swap/user/hadoop/temp_s3/chuixue_user_note_relations_4_28_to_4_30'
+< relations_1 = pq.ParquetDataset(path_1,filesystem=s3).read().to_pandas()
+< relation_1_foward_edge = list(zip(relations_1.node_1.values, relations_1.node_2.values))
+< relation_1_back_edge = list(zip(relations_1.node_2.values, relations_1.node_1.values))
+< relations_list.append(('user', 'interact', 'note'))
+< relations_list.append(('note', 'interact by', 'user'))
+< relations_data_list.append(relation_1_foward_edge)
+< relations_data_list.append(relation_1_back_edge)
+< 
+< 
+< graph_4_28_to_4_30 = build_graph(relations_list,relations_data_list)
+---
+> # In[14]:
+327,334c303,304
+< 
+< 
+< import pickle
+< 
+< f = open('/apps/chuixue/graph_4_28_to_4_30', 'wb')
+< pickle.dump(graph_4_28_to_4_30, f)
+< 
+< 
+---
+> #f = open('/apps/chuixue/graph_4_28_to_4_30', 'wb')
+> #pickle.dump(graph_4_28_to_4_30, f)
+338,340c308,310
+< #import pickle
+< #f = open('/apps/chuixue/graph_4_28_to_4_30', 'rb')
+< #graph_4_28_to_4_30 = pickle.load(f)
+---
+> import pickle
+> f = open('/apps/chuixue/graph_4_28_to_4_30', 'rb')
+> graph_4_28_to_4_30 = pickle.load(f)
+354,356d323
+< # In[10]:
+< 
+< 
+368,369c335,336
+<         ohe_df = pd.DataFrame(transformed)
+<         df = pd.concat([df, ohe_df], axis=1)
+---
+>         ohe_df = pd.DataFrame(transformed)    
+>         df = pd.concat([df, ohe_df], axis=1)  
+377a345,349
+> #feature_list =  [3,3,3]
+> 
+> 
+> # In[11]:
+> 
+382a355,363
+> # In[12]:
+> 
+> 
+> #user_nodes_features_pd_4_28_to_4_30.columns
+> 
+> 
+> # In[13]:
+> 
+> 
+391d371
+< print(user_nodes_features_pd_4_28_to_4_30.info())
+395a376,377
+> # In[16]:
+> 
+407c389
+< #net.load_state_dict(th.load("/apps/chuixue/gcn_model_heter_online_predict_4_28_to_4_30_temp1.pt"))
+---
+> net.load_state_dict(th.load("/apps/chuixue/gcn_model_heter_online_predict_4_28_to_4_30_temp1.pt"))
+422,424d403
+< #user_node_feature_4_28_to_4_30.shape[1]
+< 
+< 
+482a462,464
+> # In[ ]:
+> 
+> 
+487a470,472
+> 
+> 
+> # In[26]:
