@@ -38,11 +38,11 @@ if __name__ == '__main__':
 
     argparser.add_argument('--user-table', type=str,
                            default='dm_as_gnn_user_interact_note_user_normalized_feature_1d_inc')
-    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_7d_inc')
-    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_7d_inc')
-    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_7d_inc')
+    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_1d_inc')
+    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_1d_inc')
+    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_1d_inc')
     argparser.add_argument('--label-entity', type=str, default='user')
-    argparser.add_argument('--dsnodash', type=str, default='20210203')
+    argparser.add_argument('--dsnodash', type=str, default='20210206')
     # parser.add_argument('output_path', type=str)
     args = argparser.parse_args()
 
