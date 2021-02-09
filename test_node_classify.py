@@ -68,8 +68,9 @@ if __name__ == '__main__':
     # test entity with different feature size, however
     entity_features = {entity: th.randn(g.nodes(entity).shape[0], args.input_dim, device=device) for entity in g.ntypes}
 
-    data = train_idx, val_idx, test_idx, args.input_dim, labels, num_classes, entity_features, g, category
+    data = train_idx, val_idx, test_idx, args.input_dim, 0, 0, labels, num_classes, entity_features, g
 
+    args.label_entity = category
     # Run 10 times
     test_accs = []
     for i in range(10):

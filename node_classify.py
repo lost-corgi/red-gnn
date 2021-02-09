@@ -119,8 +119,8 @@ if __name__ == '__main__':
 
     # prepare for training
 
-    data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, labels, n_classes, entity_features, g, \
-           args.label_entity
+    data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, num_user_feature, num_device_feature, \
+           labels, n_classes, entity_features, g
 
     # Run 10 times
     test_accs = []

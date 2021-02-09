@@ -10,14 +10,14 @@ import numpy as np
 
 def train(args, device, data):
     # Unpack data
-    train_nid, val_nid, test_nid, input_dim, labels, n_classes, entity_features, g, label_entity = data
+    train_nid, val_nid, test_nid, input_dim, left_pad_size, right_pad_size, labels, n_classes, entity_features, g = data
 
     # Create PyTorch DataLoader for constructing blocks
     sampler = dgl.dataloading.MultiLayerNeighborSampler(
         [int(fanout) for fanout in args.fan_out.split(',')])
     dataloader = dgl.dataloading.NodeDataLoader(
         g,
-        {label_entity: train_nid},
+        {args.label_entity: train_nid},
         sampler,
         batch_size=args.batch_size,
         shuffle=True,
@@ -47,10 +47,10 @@ def train(args, device, data):
             blocks = [blk.int().to(device) for blk in blocks]
 
             # Load the input features as well as output labels
-            batch_inputs, batch_labels = load_subtensor(entity_features, labels, seeds, input_nodes, label_entity, args.is_pad, device)
+            batch_inputs, batch_labels = load_subtensor(entity_features, labels, seeds, input_nodes, args.label_entity, args.is_pad, device)
 
             # Compute loss and prediction
-            batch_pred = model(blocks, batch_inputs)[label_entity]
+            batch_pred = model(blocks, batch_inputs)[args.label_entity]
             loss = loss_fcn(batch_pred, batch_labels)
             optimizer.zero_grad()
             loss.backward()
@@ -68,7 +68,8 @@ def train(args, device, data):
         if epoch >= 5:
             avg += toc - tic
         if epoch % args.eval_every == 0 and epoch != 0:
-            eval_acc, test_acc = evaluate(model, g, entity_features, labels, val_nid, test_nid, device, args.batch_size, args.num_workers, label_entity, args.is_pad)
+            eval_acc, test_acc = evaluate(model, g, entity_features, labels, val_nid, test_nid, device,
+                                          args.batch_size, args.num_workers, args.label_entity, args.is_pad)
             # if args.save_pred:
             #     np.savetxt(args.save_pred + '%02d' % epoch, pred.argmax(1).cpu().numpy(), '%d')
             print('Eval Acc {:.4f}'.format(eval_acc))

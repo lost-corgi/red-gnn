@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import dgl
 import tqdm
 import layers
+from data_utils import *
 import dgl.nn as dglnn
 
 class RGCN(nn.Module):
@@ -57,13 +58,7 @@ class RGCN(nn.Module):
             for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
                 block = blocks[0].int().to(device)
                 if l is 0 and is_pad:
-                    h = {}
-                    for k, v in x.items():
-                        if k is 'user':
-                            h[k] = F.pad(v[input_nodes[k]], (0, 4))
-                        else:
-                            h[k] = F.pad(v[input_nodes[k]], (24, 0))
-                        h[k] = h[k].to(device)
+                    h = load_feature_subtensor(x, input_nodes, is_pad, device)
                 else:
                     h = {k: x[k][input_nodes[k]].to(device) for k in input_nodes.keys()}
                 h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}

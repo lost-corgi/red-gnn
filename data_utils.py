@@ -65,12 +65,10 @@ import torch.nn.functional as F
 #     return (values - values.min(0, keepdims=True)) / \
 #         (values.max(0, keepdims=True) - values.min(0, keepdims=True))
 
-def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, device):
+def load_feature_subtensor(nfeats, input_nodes, is_pad, device):
     """
-    Extracts features and labels for a set of nodes.
+    Extracts features for a set of nodes.
     """
-    # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
-    # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
     if is_pad:
         batch_inputs = {}
         for k, v in nfeats.items():
@@ -78,10 +76,17 @@ def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, devic
                 batch_inputs[k] = F.pad(v[input_nodes[k]], (0, 4))
             else:
                 batch_inputs[k] = F.pad(v[input_nodes[k]], (24, 0))
+            batch_inputs[k] = batch_inputs[k].to(device)
     else:
         batch_inputs = {k: v[input_nodes[k]] for k, v in nfeats.items()}
+    return batch_inputs
+
+def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, device):
+    """
+    Extracts features and labels for a set of nodes.
+    """
+    batch_inputs = load_feature_subtensor(nfeats, input_nodes, is_pad, device)
     batch_labels = labels[seeds[label_type]].to(device)
-    batch_inputs = {k: v.to(device) for k, v in batch_inputs.items()}
     return batch_inputs, batch_labels
 
 # # construct_computation_graph(g, n_layers, label_df[label_entity_col_name].values, label_entity_type)
