@@ -57,10 +57,8 @@ class RGCN(nn.Module):
 
             for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
                 block = blocks[0].int().to(device)
-                if l is 0 and is_pad:
-                    h = load_feature_subtensor(x, input_nodes, is_pad, device)
-                else:
-                    h = {k: x[k][input_nodes[k]].to(device) for k in input_nodes.keys()}
+                is_pad = (l is 0) and is_pad
+                h = load_feature_subtensor(x, input_nodes, is_pad, device)
                 h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
                 h = layer(block, (h, h_dst))
                 if l != len(self.layers) - 1:
