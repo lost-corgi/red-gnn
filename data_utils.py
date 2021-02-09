@@ -80,9 +80,8 @@ def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, devic
                 batch_inputs[k] = F.pad(v[input_nodes[k]], (24, 0))
     else:
         batch_inputs = {k: v[input_nodes[k]] for k, v in nfeats.items()}
-    batch_labels = labels[seeds[label_type]]
-    batch_inputs = batch_inputs.to(device)
-    batch_labels = batch_labels.to(device)
+    batch_labels = labels[seeds[label_type]].to(device)
+    batch_inputs = {k: v.to(device) for k, v in batch_inputs.items()}
     return batch_inputs, batch_labels
 
 # # construct_computation_graph(g, n_layers, label_df[label_entity_col_name].values, label_entity_type)
