@@ -22,7 +22,7 @@ def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, batch_size, num
     with torch.no_grad():
         pred = model.inference(g, nfeat, device, batch_size, num_workers, is_pad)[label_type]
     model.train()
-    return compute_acc(pred[val_nid], labels[val_nid]), compute_acc(pred[test_nid], labels[test_nid]), pred
+    return compute_acc(pred[val_nid], labels[val_nid].to(pred.device)), compute_acc(pred[test_nid], labels[test_nid].to(pred.device))
 
 # def plot_roc(y_true, y_pred_prob):
 #     fpr, tpr, _ = roc_curve(y_true, y_pred_prob)
