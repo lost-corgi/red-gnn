@@ -68,7 +68,7 @@ def train(args, device, data):
         if epoch >= 5:
             avg += toc - tic
         if epoch % args.eval_every == 0 and epoch != 0:
-            eval_acc, test_acc, _ = evaluate(model, g, entity_features, labels, val_nid, test_nid, device, args.batch_size, args.num_workers, label_entity)
+            eval_acc, test_acc, _ = evaluate(model, g, entity_features, labels, val_nid, test_nid, device, args.batch_size, args.num_workers, label_entity, args.is_pad)
             # if args.save_pred:
             #     np.savetxt(args.save_pred + '%02d' % epoch, pred.argmax(1).cpu().numpy(), '%d')
             print('Eval Acc {:.4f}'.format(eval_acc))

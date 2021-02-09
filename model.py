@@ -36,7 +36,7 @@ class RGCN(nn.Module):
                 h = {k: self.dropout(v) for k, v in h.items()}
         return h
 
-    def inference(self, g, x, device, batch_size, num_workers):
+    def inference(self, g, x, device, batch_size, num_workers, is_pad):
         for l, layer in enumerate(self.layers):
             y = {
                 k: torch.zeros(
@@ -56,14 +56,16 @@ class RGCN(nn.Module):
 
             for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
                 block = blocks[0].int().to(device)
-                h = {}
-                for k, v in x.items():
-                    if k is 'user':
-                        h[k] = F.pad(v[input_nodes[k]], (0, 4))
-                    else:
-                        h[k] = F.pad(v[input_nodes[k]], (24, 0))
-                    h[k] = h[k].to(device)
-                # h = {k: x[k][input_nodes[k]].to(device) for k in input_nodes.keys()}
+                if l is 0 and is_pad:
+                    h = {}
+                    for k, v in x.items():
+                        if k is 'user':
+                            h[k] = F.pad(v[input_nodes[k]], (0, 4))
+                        else:
+                            h[k] = F.pad(v[input_nodes[k]], (24, 0))
+                        h[k] = h[k].to(device)
+                else:
+                    h = {k: x[k][input_nodes[k]].to(device) for k in input_nodes.keys()}
                 h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
                 h = layer(block, (h, h_dst))
                 if l != len(self.layers) - 1:

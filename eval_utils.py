@@ -9,7 +9,7 @@ def compute_acc(pred, labels):
     """
     return (torch.argmax(pred, dim=1) == labels).float().sum() / len(pred)
 
-def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, batch_size, num_workers, label_type):
+def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, batch_size, num_workers, label_type, is_pad):
     """
     Evaluate the model on the validation set specified by ``val_mask``.
     g : The entire graph.
@@ -20,7 +20,7 @@ def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, batch_size, num
     """
     model.eval()
     with torch.no_grad():
-        pred = model.inference(g, nfeat, device, batch_size, num_workers)[label_type]
+        pred = model.inference(g, nfeat, device, batch_size, num_workers, is_pad)[label_type]
     model.train()
     return compute_acc(pred[val_nid], labels[val_nid]), compute_acc(pred[test_nid], labels[test_nid]), pred
 
