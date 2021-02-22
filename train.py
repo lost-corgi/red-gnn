@@ -60,7 +60,7 @@ def train(args, device, data):
 
             iter_tput.append(len(seeds) / (time.time() - tic_step))
             if step % args.log_every == 0:
-                auc = roc_auc_score(batch_labels.cpu().detach().numpy(), batch_pred.detach().numpy())
+                auc = roc_auc_score(batch_labels.cpu().detach().numpy(), batch_pred.cpu().detach().numpy())
                 gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train auc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
                     epoch, step, loss.item(), auc, np.mean(iter_tput[3:]), gpu_mem_alloc))
