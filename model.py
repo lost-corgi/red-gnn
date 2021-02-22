@@ -1,12 +1,80 @@
 import torch
 import torch.nn as nn
 import dgl.nn.pytorch as dglnn
-import torch.nn.functional as F
 import dgl
 import tqdm
 import layers
 from data_utils import *
 import dgl.nn as dglnn
+
+
+class binaryRGCN(nn.Module):
+    """
+    RGCN with binary label on the specified entity
+    """
+    def __init__(self, in_dim, h_dim, n_layers, activation, dropout, rel_names, label_entity):
+        super().__init__()
+        self.h_dim = h_dim
+        self.in_dim = in_dim
+        self.layers = nn.ModuleList()
+        #i2h
+        self.layers.append(dglnn.HeteroGraphConv(
+            {rel: dglnn.GraphConv(in_dim, h_dim) for rel in rel_names}))
+        #h2h
+        for i in range(1, n_layers - 1):
+            self.layers.append(dglnn.HeteroGraphConv(
+                {rel: dglnn.GraphConv(h_dim, h_dim) for rel in rel_names}))
+        #h2o
+        self.layers.append(dglnn.HeteroGraphConv(
+            {rel: dglnn.GraphConv(h_dim, 1) for rel in rel_names}))
+        self.dropout = nn.Dropout(dropout)
+        self.activation = activation
+        self.label_entity = label_entity
+
+    def forward(self, blocks, h):
+        for l, (layer, block) in enumerate(zip(self.layers, blocks)):
+            h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
+            h = layer(block, (h, h_dst))
+            if l != len(self.layers) - 1:
+                h = {k: self.activation(v) for k, v in h.items()}
+                h = {k: self.dropout(v) for k, v in h.items()}
+        h = torch.sigmoid(h[self.label_entity])
+        return h
+
+    def inference(self, g, x, device, batch_size, num_workers, is_pad):
+        for l, layer in enumerate(self.layers):
+            y = {
+                k: torch.zeros(
+                    g.number_of_nodes(k),
+                    self.h_dim if l != len(self.layers) - 1 else 1)
+                for k in g.ntypes}
+
+            sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
+            dataloader = dgl.dataloading.NodeDataLoader(
+                g,
+                {k: torch.arange(g.number_of_nodes(k)) for k in g.ntypes},
+                sampler,
+                batch_size=batch_size,
+                shuffle=True,
+                drop_last=False,
+                num_workers=num_workers)
+
+            for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
+                block = blocks[0].int().to(device)
+                is_pad = (l == 0) and is_pad
+                h = load_feature_subtensor(x, input_nodes, is_pad, device)
+                h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
+                h = layer(block, (h, h_dst))
+                if l != len(self.layers) - 1:
+                    h = {k: self.activation(v) for k, v in h.items()}
+                    h = {k: self.dropout(v) for k, v in h.items()}
+
+                for k in h.keys():
+                    y[k][output_nodes[k]] = h[k].cpu()
+            x = y
+        y = torch.sigmoid(y[self.label_entity])
+        return y
+
 
 class RGCN(nn.Module):
     def __init__(self, in_dim, h_dim, out_dim, n_layers, activation, dropout, rel_names):
@@ -57,7 +125,7 @@ class RGCN(nn.Module):
 
             for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
                 block = blocks[0].int().to(device)
-                is_pad = (l is 0) and is_pad
+                is_pad = (l == 0) and is_pad
                 h = load_feature_subtensor(x, input_nodes, is_pad, device)
                 h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
                 h = layer(block, (h, h_dst))

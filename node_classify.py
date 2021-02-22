@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import torch
-import torch.nn.functional as F
 import dgl
 from hgraph_builder import *
 import s3fs
@@ -84,7 +83,7 @@ if __name__ == '__main__':
     user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
     device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
     labels = labels.values
-    val_num, test_num = labels.shape[0] // 8, labels.shape[0] // 8
+    val_num, test_num = labels.shape[0] // 10, labels.shape[0] // 10
     n_classes = labels[:, 1].max() + 1
     num_user_feature = user_features.shape[1]
     num_device_feature = device_features.shape[1]
@@ -103,7 +102,7 @@ if __name__ == '__main__':
         labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
     expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
     expand_labels[labels[:, 0]] = labels[:, 1]
-    labels = torch.tensor(expand_labels, device=device)
+    labels = torch.tensor(expand_labels, dtype=torch.float32, device=device)
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
