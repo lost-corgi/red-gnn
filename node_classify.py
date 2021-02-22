@@ -103,6 +103,7 @@ if __name__ == '__main__':
     expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
     expand_labels[labels[:, 0]] = labels[:, 1]
     labels = torch.tensor(expand_labels, dtype=torch.float32, device=device)
+    labels = torch.unsqueeze(labels, 1)
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
