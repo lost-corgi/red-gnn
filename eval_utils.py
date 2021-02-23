@@ -2,17 +2,6 @@ import torch
 from sklearn.metrics import roc_auc_score #, confusion_matrix, f1_score, roc_curve, auc, precision_recall_curve
 # import matplotlib.pyplot as plt
 
-def compute_acc(pred, labels):
-    return (torch.argmax(pred, dim=1) == labels).float().sum() / len(pred)
-
-def evaluate(model, g, nfeat, labels, val_nid, test_nid, device, batch_size, num_workers, is_pad):
-    model.eval()
-    with torch.no_grad():
-        pred = model.inference(g, nfeat, device, batch_size, num_workers, is_pad)
-    model.train()
-    return roc_auc_score(labels[val_nid].cpu().detach().numpy(), pred[val_nid].detach().numpy()), \
-           roc_auc_score(labels[test_nid].cpu().detach().numpy(), pred[test_nid].detach().numpy())
-
 # def plot_roc(y_true, y_pred_prob):
 #     fpr, tpr, _ = roc_curve(y_true, y_pred_prob)
 #     roc_auc = auc(fpr, tpr)

@@ -1,12 +1,15 @@
 import argparse
 import numpy as np
 import torch
+import torch.nn.functional as F
 import dgl
 from hgraph_builder import *
 import s3fs
 import pyarrow.parquet as pq
 from dateutil.parser import parse as dt_parse
 from train import train
+from torch.nn.parallel import DistributedDataParallel
+import torch.multiprocessing as mp
 
 s3 = s3fs.S3FileSystem()
 
@@ -14,8 +17,8 @@ s3 = s3fs.S3FileSystem()
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser("Train user-device graph")
-    argparser.add_argument('--gpu', type=int, default=-1,
-                           help="GPU device ID. Use -1 for CPU training")
+    argparser.add_argument('--gpu', type=str, default='0',
+                           help="Comma separated list of GPU device IDs.")
     argparser.add_argument('--num-epochs', type=int, default=100)
     # argparser.add_argument('--input-dim', type=int, default=10)
     argparser.add_argument('--hidden-dim', type=int, default=16)
@@ -25,14 +28,14 @@ if __name__ == '__main__':
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.0001)
+    argparser.add_argument('--lr', type=float, default=0.003)
     argparser.add_argument('--dropout', type=float, default=0.5)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
     argparser.add_argument('--is-pad', type=bool, default=True)
-    # argparser.add_argument('--loss-func', type=str, default='BCELoss')
+    # argparser.add_argument('--loss-func', type=str, default='BCELoss')  # TODO: modify train.py to take args.loss_func
     # argparser.add_argument('--use-label-subgraph', type=bool, default=True)
 
     argparser.add_argument('--user-table', type=str,
@@ -83,7 +86,7 @@ if __name__ == '__main__':
     user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
     device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
     labels = labels.values
-    val_num, test_num = labels.shape[0] // 10, labels.shape[0] // 10
+    val_num, test_num = labels.shape[0] // 8, labels.shape[0] // 8
     n_classes = labels[:, 1].max() + 1
     num_user_feature = user_features.shape[1]
     num_device_feature = device_features.shape[1]
@@ -102,8 +105,7 @@ if __name__ == '__main__':
         labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
     expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
     expand_labels[labels[:, 0]] = labels[:, 1]
-    labels = torch.tensor(expand_labels, dtype=torch.float32, device=device)
-    labels = torch.unsqueeze(labels, 1)
+    labels = torch.tensor(expand_labels, device=device)
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
@@ -127,3 +129,15 @@ if __name__ == '__main__':
     for i in range(10):
         test_accs.append(train(args, device, data))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
+
+    if n_gpus == 1:
+        run(0, n_gpus, args, devices, data)
+    else:
+        procs = []
+        for proc_id in range(n_gpus):
+            p = mp.Process(target=thread_wrapped_func(run),
+                           args=(proc_id, n_gpus, args, devices, data))
+            p.start()
+            procs.append(p)
+        for p in procs:
+            p.join()

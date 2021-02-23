@@ -23,7 +23,7 @@ if __name__ == '__main__':
     argparser.add_argument('--val-batch-size', type=int, default=128)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.0001)
+    argparser.add_argument('--lr', type=float, default=0.003)
     argparser.add_argument('--dropout', type=float, default=0.5)
     argparser.add_argument('--num-workers', type=int, default=4,
                            help="Number of sampling processes. Use 0 for no extra process.")
@@ -58,10 +58,6 @@ if __name__ == '__main__':
     train_mask = g.nodes[category].data.pop('train_mask')
     train_idx = th.nonzero(train_mask, as_tuple=False).squeeze()
     labels = g.nodes[category].data.pop('labels')
-    labels[labels >= 1] = 1
-    labels[labels < 1] = 0
-    labels = labels.type(th.FloatTensor)
-    labels = th.unsqueeze(labels, 1)
     labels = labels.to(device)
     ## no val set in rdf datasets, use test set for testing functionality
     val_idx = test_idx
@@ -69,13 +65,14 @@ if __name__ == '__main__':
     # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     g.create_formats_()
 
-    entity_features = {entity: th.randn(g.number_of_nodes(entity), args.input_dim, device=device) for entity in g.ntypes}
+    # test entity with different feature size, however
+    entity_features = {entity: th.randn(g.nodes(entity).shape[0], args.input_dim, device=device) for entity in g.ntypes}
 
     data = train_idx, val_idx, test_idx, args.input_dim, 0, 0, labels, num_classes, entity_features, g
 
     args.label_entity = category
     # Run 10 times
     test_accs = []
-    for i in range(1):
+    for i in range(10):
         test_accs.append(train(args, device, data))
         print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
