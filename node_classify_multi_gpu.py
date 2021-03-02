@@ -96,8 +96,8 @@ if __name__ == '__main__':
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
-    user_features = torch.from_numpy(user_features)     # user_features too large to fit in gpu memory
-    device_features = torch.from_numpy(device_features)
+    user_features = torch.from_numpy(user_features).type(torch.float32)     # user_features too large to fit in gpu memory
+    device_features = torch.from_numpy(device_features).type(torch.float32)
     entity_features = {'user': user_features, 'device': device_features}
 
     # g.edges['used'].data['weight'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
