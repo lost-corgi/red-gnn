@@ -87,8 +87,8 @@ if __name__ == '__main__':
     num_device_feature = device_features.shape[1]
 
     np.random.shuffle(labels)
-    train_idx, val_idx, test_idx = \
-        labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
+    train_idx, val_idx, test_idx = torch.from_numpy(labels[val_num + test_num:, 0]),\
+                                   torch.from_numpy(labels[:val_num, 0]), torch.from_numpy(labels[val_num:val_num + test_num, 0])
     expand_labels = np.empty(user_features.shape[0], dtype=np.float32)
     expand_labels[labels[:, 0]] = labels[:, 1]
     labels = torch.from_numpy(expand_labels).to(device)
