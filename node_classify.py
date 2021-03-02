@@ -16,36 +16,34 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser("Train user-device graph")
     argparser.add_argument('--gpu', type=int, default=-1,
                            help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--num-epochs', type=int, default=100)
+    argparser.add_argument('--num-epochs', type=int, default=10)
     # argparser.add_argument('--input-dim', type=int, default=10)
     argparser.add_argument('--hidden-dim', type=int, default=16)
-    argparser.add_argument('--num-layers', type=int, default=3)
-    argparser.add_argument('--fan-out', type=str, default='5,10,15')
+    argparser.add_argument('--num-layers', type=int, default=5)
+    argparser.add_argument('--fan-out', type=str, default='10,10,10,10,10')
     argparser.add_argument('--batch-size', type=int, default=1024)
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.0001)
-    argparser.add_argument('--dropout', type=float, default=0.5)
+    argparser.add_argument('--lr', type=float, default=0.001)
+    argparser.add_argument('--dropout', type=float, default=0)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
-    argparser.add_argument('--wd', type=float, default=0)
+    argparser.add_argument('--wd', type=float, default=0.9)
     argparser.add_argument('--is-pad', type=bool, default=True)
     # argparser.add_argument('--loss-func', type=str, default='BCELoss')
     # argparser.add_argument('--use-label-subgraph', type=bool, default=True)
 
     argparser.add_argument('--user-table', type=str,
-                           default='dm_as_gnn_user_interact_note_user_normalized_feature_1d_inc')
-    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_1d_inc')
-    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_1d_inc')
-    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_1d_inc')
+                           default='dm_as_gnn_user_interact_note_user_normalized_feature_7d_inc')
+    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_7d_inc')
+    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_7d_inc')
+    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_7d_inc')
     argparser.add_argument('--label-entity', type=str, default='user')
-    argparser.add_argument('--dsnodash', type=str, default='20210206')
+    argparser.add_argument('--dsnodash', type=str, default='20210223')
     # parser.add_argument('output_path', type=str)
     args = argparser.parse_args()
-
-    # output_path = args.output_path
 
     if args.gpu >= 0:
         device = torch.device('cuda:%d' % args.gpu)
@@ -88,41 +86,29 @@ if __name__ == '__main__':
     num_user_feature = user_features.shape[1]
     num_device_feature = device_features.shape[1]
 
-    # if args.use_label_subgraph:
-    #     idxs = np.arange(labels.shape[0])
-    #     np.random.shuffle(idxs)
-    #     train_idx, val_idx, test_idx = idxs[val_num + test_num:], idxs[:val_num], idxs[val_num:val_num + test_num]
-    #     g = dgl.node_subgraph(g, {args.label_entity: labels[:, 0], })
-    #     user_features = user_features[labels[:, 0]]
-    #     device_features = device_features[g.nodes['device'].data[dgl.NID]]
-    #     labels = torch.tensor(labels[:, 1], dtype=torch.int64, device=device)
-    # else:
     np.random.shuffle(labels)
     train_idx, val_idx, test_idx = \
         labels[val_num + test_num:, 0], labels[:val_num, 0], labels[val_num:val_num + test_num, 0]
-    expand_labels = np.empty(user_features.shape[0], dtype=np.int64)
+    expand_labels = np.empty(user_features.shape[0], dtype=np.float32)
     expand_labels[labels[:, 0]] = labels[:, 1]
-    labels = torch.tensor(expand_labels, dtype=torch.float32, device=device)
+    labels = torch.from_numpy(expand_labels).to(device)
     labels = torch.unsqueeze(labels, 1)
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
-    user_features = torch.tensor(user_features, device=device, dtype=torch.float32)
-    device_features = torch.tensor(device_features, device=device, dtype=torch.float32)
-
+    user_features = torch.from_numpy(user_features)     # user_features too large to fit in gpu memory
+    device_features = torch.from_numpy(device_features).to(device)
     entity_features = {'user': user_features, 'device': device_features}
 
     # g.edges['used'].data['weight'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
     # g.edges['used-by'].data['weight'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
-    # del relation_df
-    # gc.collect()
+    del relation_df
 
     # prepare for training
-
     data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, num_user_feature, num_device_feature, \
            labels, n_classes, entity_features, g
+    print(args)
 
-    # Run 10 times
     test_accs = []
     for i in range(10):
         test_accs.append(train(args, device, data))

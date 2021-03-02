@@ -19,14 +19,14 @@ class binaryRGCN(nn.Module):
         self.layers = nn.ModuleList()
         #i2h
         self.layers.append(dglnn.HeteroGraphConv(
-            {rel: dglnn.GraphConv(in_dim, h_dim) for rel in rel_names}))
+            {rel: dglnn.SAGEConv(in_dim, h_dim, 'mean') for rel in rel_names}))
         #h2h
         for i in range(1, n_layers - 1):
             self.layers.append(dglnn.HeteroGraphConv(
-                {rel: dglnn.GraphConv(h_dim, h_dim) for rel in rel_names}))
+                {rel: dglnn.SAGEConv(h_dim, h_dim, 'mean') for rel in rel_names}))
         #h2o
         self.layers.append(dglnn.HeteroGraphConv(
-            {rel: dglnn.GraphConv(h_dim, 1) for rel in rel_names}))
+            {rel: dglnn.SAGEConv(h_dim, 1, 'mean') for rel in rel_names}))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
         self.label_entity = label_entity

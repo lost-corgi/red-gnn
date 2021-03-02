@@ -58,23 +58,22 @@ if __name__ == '__main__':
     train_mask = g.nodes[category].data.pop('train_mask')
     train_idx = th.nonzero(train_mask, as_tuple=False).squeeze()
     labels = g.nodes[category].data.pop('labels')
+    # remove below to test multi-class case
     labels[labels >= 1] = 1
     labels[labels < 1] = 0
     labels = labels.type(th.FloatTensor)
     labels = th.unsqueeze(labels, 1)
     labels = labels.to(device)
-    ## no val set in rdf datasets, use test set for testing functionality
+    # no val set in rdf datasets, use test set for testing functionality
     val_idx = test_idx
     # Create csr/coo/csc formats before launching sampling processes
     # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     g.create_formats_()
 
     entity_features = {entity: th.randn(g.number_of_nodes(entity), args.input_dim, device=device) for entity in g.ntypes}
-
     data = train_idx, val_idx, test_idx, args.input_dim, 0, 0, labels, num_classes, entity_features, g
-
     args.label_entity = category
-    # Run 10 times
+
     test_accs = []
     for i in range(1):
         test_accs.append(train(args, device, data))

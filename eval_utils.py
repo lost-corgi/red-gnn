@@ -50,11 +50,6 @@ from sklearn.metrics import roc_auc_score #, confusion_matrix, f1_score, roc_cur
 #     # print(cf_m)
 #     return cf_m[1, 1] / (cf_m[1, 1] + cf_m[1, 0])
 #
-#
-# def get_auc_score(y_true, y_pred_prob):
-#     return roc_auc_score(y_true, y_pred_prob)
-#
-#
 # def plot_p_r_curve(y_true, y_pred_prob, best_logits, train_idx, val_idx):
 #     thresholds = [0]
 #     precision, recall, thresholds_2 = precision_recall_curve(y_true, y_pred_prob)

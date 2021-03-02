@@ -5,6 +5,68 @@
 # import tqdm
 # import dask.dataframe as dd
 import torch.nn.functional as F
+import traceback
+from _thread import start_new_thread
+from functools import wraps
+
+from torch.multiprocessing import Queue
+
+def load_feature_subtensor(nfeats, input_nodes, is_pad, device):
+    """
+    Extracts features for a set of nodes.
+    """
+    if is_pad:
+        batch_inputs = {}
+        for k, v in nfeats.items():
+            if k is 'user':
+                batch_inputs[k] = F.pad(v[input_nodes[k]], (0, 4))
+            else:
+                batch_inputs[k] = F.pad(v[input_nodes[k]], (84, 0))
+            batch_inputs[k] = batch_inputs[k].to(device)
+    else:
+        batch_inputs = {k: v[input_nodes[k]].to(device) for k, v in nfeats.items()}
+    return batch_inputs
+
+def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, device):
+    """
+    Extracts features and labels for a set of nodes.
+    """
+    batch_inputs = load_feature_subtensor(nfeats, input_nodes, is_pad, device)
+    batch_labels = labels[seeds[label_type]].to(device)
+    return batch_inputs, batch_labels
+
+#######################################################################
+#
+# Multithread wrapper
+#
+#######################################################################
+
+# According to https://github.com/pytorch/pytorch/issues/17199, this decorator
+# is necessary to make fork() and openmp work together.
+def thread_wrapped_func(func):
+    """
+    Wraps a process entry point to make it work with OpenMP.
+    """
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        queue = Queue()
+        def _queue_result():
+            exception, trace, res = None, None, None
+            try:
+                res = func(*args, **kwargs)
+            except Exception as e:
+                exception = e
+                trace = traceback.format_exc()
+            queue.put((res, exception, trace))
+
+        start_new_thread(_queue_result, ())
+        result, exception, trace = queue.get()
+        if exception is None:
+            return result
+        else:
+            assert isinstance(exception, Exception)
+            raise exception.__class__(trace)
+    return decorated_function
 
 # # This is the train-test split method most of the recommender system papers running on MovieLens
 # # takes.  It essentially follows the intuition of "training on the past and predict the future".
@@ -65,34 +127,9 @@ import torch.nn.functional as F
 #     return (values - values.min(0, keepdims=True)) / \
 #         (values.max(0, keepdims=True) - values.min(0, keepdims=True))
 
-def load_feature_subtensor(nfeats, input_nodes, is_pad, device):
-    """
-    Extracts features for a set of nodes.
-    """
-    if is_pad:
-        batch_inputs = {}
-        for k, v in nfeats.items():
-            if k is 'user':
-                batch_inputs[k] = F.pad(v[input_nodes[k]], (0, 4))
-            else:
-                batch_inputs[k] = F.pad(v[input_nodes[k]], (24, 0))
-            batch_inputs[k] = batch_inputs[k].to(device)
-    else:
-        batch_inputs = {k: v[input_nodes[k]] for k, v in nfeats.items()}
-    return batch_inputs
-
-def load_subtensor(nfeats, labels, seeds, input_nodes, label_type, is_pad, device):
-    """
-    Extracts features and labels for a set of nodes.
-    """
-    batch_inputs = load_feature_subtensor(nfeats, input_nodes, is_pad, device)
-    batch_labels = labels[seeds[label_type]].to(device)
-    return batch_inputs, batch_labels
-
 # # construct_computation_graph(g, n_layers, label_df[label_entity_col_name].values, label_entity_type)
 # def construct_computation_graph(graph, n_layers, seed_node_ids, seed_node_type):
 #     sub_g = graph.in_subgraph({seed_node_type: seed_node_ids})
-
 
 # def node_feature_handle(df,categorical_variables_list,numerical_variables_list):
 #     df = df[categorical_variables_list + numerical_variables_list ]
