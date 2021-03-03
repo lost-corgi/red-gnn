@@ -25,7 +25,7 @@ if __name__ == '__main__':
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.001)
+    argparser.add_argument('--lr', type=float, default=0.003)
     argparser.add_argument('--dropout', type=float, default=0)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
@@ -36,10 +36,10 @@ if __name__ == '__main__':
     # argparser.add_argument('--use-label-subgraph', type=bool, default=True)
 
     argparser.add_argument('--user-table', type=str,
-                           default='dm_as_gnn_user_interact_note_user_normalized_feature_7d_inc')
-    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_7d_inc')
-    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_7d_inc')
-    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_7d_inc')
+                           default='dm_as_gnn_user_interact_note_user_normalized_feature_1d_inc')
+    argparser.add_argument('--device-table', type=str, default='dm_as_gnn_user_interact_note_device_feature_1d_inc')
+    argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_1d_inc')
+    argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_1d_inc')
     argparser.add_argument('--label-entity', type=str, default='user')
     argparser.add_argument('--dsnodash', type=str, default='20210223')
     # parser.add_argument('output_path', type=str)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
-    user_features = torch.from_numpy(user_features).type(torch.float32)     # user_features too large to fit in gpu memory
+    user_features = torch.from_numpy(user_features).type(torch.float32).to(device)  # user_features too large to fit in gpu memory
     device_features = torch.from_numpy(device_features).type(torch.float32).to(device)
     entity_features = {'user': user_features, 'device': device_features}
 
@@ -107,9 +107,4 @@ if __name__ == '__main__':
     # prepare for training
     data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, num_user_feature, num_device_feature, \
            labels, n_classes, entity_features, g
-    print(args)
-
-    test_accs = []
-    for i in range(10):
-        test_accs.append(train(args, device, data))
-        print('Average test accuracy:', np.mean(test_accs), '±', np.std(test_accs))
+    train(args, device, data)

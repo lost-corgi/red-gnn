@@ -180,7 +180,7 @@ def train_mp(proc_id, n_gpus, args, devices, data):
     model = binaryRGCN(input_dim, args.hidden_dim, args.num_layers, F.relu, args.dropout, g.etypes, args.label_entity)
     model = model.to(dev_id)
     if n_gpus > 1:
-        model = DistributedDataParallel(model, device_ids=[dev_id], output_device=dev_id)
+        model = DistributedDataParallel(model, device_ids=[dev_id], output_device=dev_id, find_unused_parameters=True)
     loss_fcn = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
