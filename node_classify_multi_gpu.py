@@ -12,7 +12,7 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser("Train user-device graph")
     argparser.add_argument('--gpu', type=str, default='0',
                            help="Comma separated list of GPU device IDs.")
-    argparser.add_argument('--num-epochs', type=int, default=10)
+    argparser.add_argument('--num-epochs', type=int, default=100)
     # argparser.add_argument('--input-dim', type=int, default=10)
     argparser.add_argument('--hidden-dim', type=int, default=16)
     argparser.add_argument('--num-layers', type=int, default=5)
@@ -21,12 +21,12 @@ if __name__ == '__main__':
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.003)
+    argparser.add_argument('--lr', type=float, default=0.01)
     argparser.add_argument('--dropout', type=float, default=0)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
-    argparser.add_argument('--wd', type=float, default=0.9)
+    argparser.add_argument('--wd', type=float, default=0)
     argparser.add_argument('--is-pad', type=bool, default=True)
     argparser.add_argument('--data-cpu', action='store_true',
                            help="By default the script puts all node features and labels "
