@@ -222,11 +222,10 @@ def train_mp(proc_id, n_gpus, args, devices, data):
                 avg += toc - tic
             # valid process
             if epoch % args.eval_every == 0 and epoch != 0:
-                if n_gpus > 1:
-                    model = model.module
+                m_module = model.module if n_gpus > 1 else model
                 val_loss = 0
                 count = 0
-                model.eval()
+                m_module.eval()
                 val_preds = []
                 val_labels = []
                 with torch.no_grad():
@@ -235,7 +234,7 @@ def train_mp(proc_id, n_gpus, args, devices, data):
                         blocks = [blk.int().to(dev_id) for blk in blocks]
                         batch_inputs, batch_labels = load_subtensor(entity_features, labels, seeds, input_nodes,
                                                                     args.label_entity, args.is_pad, dev_id)
-                        batch_pred = model(blocks, batch_inputs)
+                        batch_pred = m_module(blocks, batch_inputs)
                         loss = loss_fcn(batch_pred, batch_labels)
                         val_loss += loss.item() * pred_size
                         val_preds.append(batch_pred.squeeze().cpu().detach().numpy())
@@ -247,12 +246,12 @@ def train_mp(proc_id, n_gpus, args, devices, data):
                     val_labels = np.concatenate(val_labels)
                     val_auc = roc_auc_score(val_labels, val_preds)
                     print("Epoch {:05d} | Valid loss: {:.4f} | Valid Auc: {:.4f}".format(epoch, val_loss, val_auc))
-                model.train()
+                m_module.train()
                 # if args.save_pred:
                 #     np.savetxt(args.save_pred + '%02d' % epoch, pred.argmax(1).cpu().numpy(), '%d')
                 if val_auc > best_val_auc:
                     best_val_auc = val_auc
-                    best_model_state_dict = model.state_dict()
+                    best_model_state_dict = m_module.state_dict()
                 print('Best val auc {:.4f}'.format(best_val_auc))
                 # print(model.state_dict())
 
