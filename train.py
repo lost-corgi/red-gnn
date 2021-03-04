@@ -118,6 +118,7 @@ def train(args, device, data):
     best_model = binaryRGCN(input_dim, args.hidden_dim, args.num_layers, F.relu, args.dropout, g.etypes,
                             args.label_entity)
     best_model.load_state_dict(best_model_state_dict)
+    best_model.to(device)
     best_model.eval()
     with torch.no_grad():
         pred = best_model.inference(g, entity_features, device, args.batch_size, args.num_workers, args.is_pad)
@@ -262,7 +263,9 @@ def train_mp(proc_id, n_gpus, args, devices, data):
         # test process: retrieve best validation model for test evaluation
         best_model = binaryRGCN(input_dim, args.hidden_dim, args.num_layers, F.relu, args.dropout, g.etypes,
                                 args.label_entity)
+        torch.save(best_model_state_dict, './saved_model/1d.pkl')
         best_model.load_state_dict(best_model_state_dict)
+        best_model.to(dev_id)
         best_model.eval()
         with torch.no_grad():
             pred = best_model.inference(g, entity_features, dev_id, args.batch_size, args.num_workers, args.is_pad)
