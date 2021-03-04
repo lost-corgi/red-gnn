@@ -8,6 +8,7 @@ import torch.multiprocessing as mp
 from hgraph_builder import *
 from train import *
 
+
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser("Train user-device graph")
     argparser.add_argument('--gpu', type=str, default='0',

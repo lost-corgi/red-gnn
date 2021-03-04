@@ -17,13 +17,16 @@ class binaryRGCN(nn.Module):
         self.h_dim = h_dim
         self.in_dim = in_dim
         self.layers = nn.ModuleList()
+        self.batch_norms = nn.ModuleList()
         #i2h
         self.layers.append(dglnn.HeteroGraphConv(
             {rel: dglnn.SAGEConv(in_dim, h_dim, 'mean') for rel in rel_names}))
+        self.batch_norms.append(nn.BatchNorm1d(h_dim))
         #h2h
         for i in range(1, n_layers - 1):
             self.layers.append(dglnn.HeteroGraphConv(
                 {rel: dglnn.SAGEConv(h_dim, h_dim, 'mean') for rel in rel_names}))
+            self.batch_norms.append(nn.BatchNorm1d(h_dim))
         #h2o
         self.layers.append(dglnn.HeteroGraphConv(
             {rel: dglnn.SAGEConv(h_dim, 1, 'mean') for rel in rel_names}))
@@ -36,6 +39,7 @@ class binaryRGCN(nn.Module):
             h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
             h = layer(block, (h, h_dst))
             if l != len(self.layers) - 1:
+                h = {k: self.batch_norms[l](v) for k, v in h.items()}
                 h = {k: self.activation(v) for k, v in h.items()}
                 h = {k: self.dropout(v) for k, v in h.items()}
         h = torch.sigmoid(h[self.label_entity])
@@ -66,6 +70,7 @@ class binaryRGCN(nn.Module):
                 h_dst = {k: v[:block.num_dst_nodes(k)] for k, v in h.items()}
                 h = layer(block, (h, h_dst))
                 if l != len(self.layers) - 1:
+                    h = {k: self.batch_norms[l](v) for k, v in h.items()}
                     h = {k: self.activation(v) for k, v in h.items()}
                     h = {k: self.dropout(v) for k, v in h.items()}
 
