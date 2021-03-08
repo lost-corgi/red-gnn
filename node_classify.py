@@ -69,9 +69,6 @@ if __name__ == '__main__':
     # graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
     #
     # g = graph_builder.build()
-    # # Create csr/coo/csc formats before launching sampling processes
-    # # This avoids creating certain formats in each data loader process, which saves momory and CPU.
-    # g.create_formats_()
     #
     # # construct subgraph for labeled computation probably save some memory of storing features
     # # g = construct_computation_graph(g, n_layers, labels[label_entity_col_name].values, label_entity_type)
@@ -82,6 +79,8 @@ if __name__ == '__main__':
     # labels = labels.values
 
     g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0][0]
+    # Create csr/coo/csc formats before launching sampling processes
+    # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     g.create_formats_()
     np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
     user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']

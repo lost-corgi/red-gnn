@@ -17,7 +17,7 @@ class binaryRGCN(nn.Module):
         self.h_dim = h_dim
         self.in_dim = in_dim
         self.layers = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
+        # self.batch_norms = nn.ModuleList()
         #i2h
         self.layers.append(dglnn.HeteroGraphConv(
             {rel: dglnn.SAGEConv(in_dim, h_dim, 'mean') for rel in rel_names}))

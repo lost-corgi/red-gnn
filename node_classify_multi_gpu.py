@@ -51,45 +51,46 @@ if __name__ == '__main__':
     devices = list(map(int, args.gpu.split(',')))
     n_gpus = len(devices)
 
-    # s3 = s3fs.S3FileSystem()
-    # user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
-    # user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
-    #
-    # device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
-    # device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
-    #
-    # relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
-    # relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
-    #
-    # label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
-    # labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
-    #
-    # # Build graph
-    # graph_builder = PandasGraphBuilder()
-    # graph_builder.add_entities(user_features, 'user_entity_id', 'user')
-    # graph_builder.add_entities(device_features, 'device_entity_id', 'device')
-    # graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
-    # graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
-    #
-    # g = graph_builder.build()
-    # # Create csr/coo/csc formats before launching sampling processes
-    # # This avoids creating certain formats in each data loader process, which saves momory and CPU.
-    # dgl.save_graphs('./dataset/1d_%s_graph' % args.dsnodash, [g])
+    s3 = s3fs.S3FileSystem()
+    user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
+    user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
 
-    # # Assign features.
-    # user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
-    # device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
-    # labels = labels.values
-    # pos_label_count = np.count_nonzero(labels[:, 1] > 0)
-    # neg_labels = labels[labels[:, 1] == 0]
-    # neg_labels = neg_labels[np.random.randint(neg_labels.shape[0], size=pos_label_count*args.sample_ratio), :]
-    # labels = np.vstack((labels[labels[:, 1] > 0], neg_labels))
-    # np.savez_compressed('./dataset/1d_%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
+    device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
+    device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
 
-    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0][0]
+    relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
+    relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
+
+    label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
+    labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
+
+    # Build graph
+    graph_builder = PandasGraphBuilder()
+    graph_builder.add_entities(user_features, 'user_entity_id', 'user')
+    graph_builder.add_entities(device_features, 'device_entity_id', 'device')
+    graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
+    graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
+
+    g = graph_builder.build()
+    dgl.save_graphs('./dataset/1d_%s_graph' % args.dsnodash, [g])
+
+    # Assign features.
+    user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
+    device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
+    labels = labels.values
+    np.random.shuffle(labels)
+    pos_label_count = np.count_nonzero(labels[:, 1] > 0)
+    neg_labels = labels[labels[:, 1] == 0]
+    neg_labels = neg_labels[:pos_label_count*args.sample_ratio, :]
+    labels = np.vstack((labels[labels[:, 1] > 0], neg_labels))
+    np.savez_compressed('./dataset/1d_%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
+
+    # g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0][0]
+    # Create csr/coo/csc formats before launching sampling processes
+    # This avoids creating certain formats in each data loader process, which saves momory and CPU.
     g.create_formats_()
-    np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
-    user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']
+    # np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
+    # user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']
 
     val_num, test_num = labels.shape[0] // 10, labels.shape[0] // 10
     n_classes = labels[:, 1].max() + 1
