@@ -7,7 +7,6 @@ import pyarrow.parquet as pq
 import torch.multiprocessing as mp
 from hgraph_builder import *
 from train import *
-from data_utils import sample_label
 
 
 if __name__ == '__main__':
@@ -31,7 +30,7 @@ if __name__ == '__main__':
     argparser.add_argument('--save-pred', type=str, default='')
     argparser.add_argument('--wd', type=float, default=0)
     argparser.add_argument('--is-pad', type=bool, default=True)
-    argparser.add_argument('--/', action='store_true',
+    argparser.add_argument('--data-cpu', action='store_true',
                            help="By default the script puts all node features and labels "
                                 "on GPU when using it to save time for data copy. This may "
                                 "be undesired if they cannot fit in GPU memory at once. "
