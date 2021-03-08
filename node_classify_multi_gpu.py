@@ -102,6 +102,7 @@ if __name__ == '__main__':
     labels = torch.from_numpy(expand_labels)
     labels = torch.unsqueeze(labels, 1)
     np.savez_compressed('./dataset/1d%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
+    dgl.save_graphs('./dataset/1d_%s_graph' % args.dsnodash, [g])
     #
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
