@@ -86,7 +86,7 @@ if __name__ == '__main__':
     # labels = np.vstack((labels[labels[:, 1] > 0], neg_labels))
     # np.savez_compressed('./dataset/1d_%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
 
-    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0]
+    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0][0]
     g.create_formats_()
     np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
     user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']

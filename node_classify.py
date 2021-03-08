@@ -81,7 +81,7 @@ if __name__ == '__main__':
     # device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
     # labels = labels.values
 
-    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0]
+    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0][0]
     g.create_formats_()
     np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
     user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']
