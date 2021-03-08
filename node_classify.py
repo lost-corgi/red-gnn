@@ -8,8 +8,6 @@ import pyarrow.parquet as pq
 from dateutil.parser import parse as dt_parse
 from train import train
 
-s3 = s3fs.S3FileSystem()
-
 # dsnodash = dt_parse(args.date_key).strftime('%Y%m%d')
 
 if __name__ == '__main__':
@@ -41,7 +39,7 @@ if __name__ == '__main__':
     argparser.add_argument('--relation-table', type=str, default='dm_as_gnn_user_interact_note_device_relation_1d_inc')
     argparser.add_argument('--label-table', type=str, default='dm_as_gnn_user_interact_note_user_label_1d_inc')
     argparser.add_argument('--label-entity', type=str, default='user')
-    argparser.add_argument('--dsnodash', type=str, default='20210223')
+    argparser.add_argument('--dsnodash', type=str, default='20210306')
     # parser.add_argument('output_path', type=str)
     args = argparser.parse_args()
 
@@ -50,37 +48,44 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
-    user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
+    # s3 = s3fs.S3FileSystem()
+    # user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
+    # user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
+    #
+    # device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
+    # device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
+    #
+    # relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
+    # relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
+    #
+    # label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
+    # labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
+    #
+    # # Build graph
+    # graph_builder = PandasGraphBuilder()
+    # graph_builder.add_entities(user_features, 'user_entity_id', 'user')
+    # graph_builder.add_entities(device_features, 'device_entity_id', 'device')
+    # graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
+    # graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
+    #
+    # g = graph_builder.build()
+    # # Create csr/coo/csc formats before launching sampling processes
+    # # This avoids creating certain formats in each data loader process, which saves momory and CPU.
+    # g.create_formats_()
+    #
+    # # construct subgraph for labeled computation probably save some memory of storing features
+    # # g = construct_computation_graph(g, n_layers, labels[label_entity_col_name].values, label_entity_type)
+    #
+    # # Assign features.
+    # user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
+    # device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
+    # labels = labels.values
 
-    device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
-    device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
-
-    relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
-    relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
-
-    label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
-    labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
-
-    # Build graph
-    graph_builder = PandasGraphBuilder()
-    graph_builder.add_entities(user_features, 'user_entity_id', 'user')
-    graph_builder.add_entities(device_features, 'device_entity_id', 'device')
-    graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
-    graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
-
-    g = graph_builder.build()
-    # Create csr/coo/csc formats before launching sampling processes
-    # This avoids creating certain formats in each data loader process, which saves momory and CPU.
+    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0]
     g.create_formats_()
+    np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
+    user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']
 
-    # construct subgraph for labeled computation probably save some memory of storing features
-    # g = construct_computation_graph(g, n_layers, labels[label_entity_col_name].values, label_entity_type)
-
-    # Assign features.
-    user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
-    device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
-    labels = labels.values
     val_num, test_num = labels.shape[0] // 10, labels.shape[0] // 10
     n_classes = labels[:, 1].max() + 1
     num_user_feature = user_features.shape[1]
@@ -102,7 +107,7 @@ if __name__ == '__main__':
 
     # g.edges['used'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
     # g.edges['used-by'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
-    del relation_df
+    # del relation_df
 
     # prepare for training
     data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, num_user_feature, num_device_feature, \

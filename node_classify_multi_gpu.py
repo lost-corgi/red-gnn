@@ -47,46 +47,49 @@ if __name__ == '__main__':
     argparser.add_argument('--dsnodash', type=str, default='20210306')
     # parser.add_argument('output_path', type=str)
     args = argparser.parse_args()
-    s3 = s3fs.S3FileSystem()
 
     devices = list(map(int, args.gpu.split(',')))
     n_gpus = len(devices)
 
-    user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
-    user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
+    # s3 = s3fs.S3FileSystem()
+    # user_table_path = 's3://xhs.alpha/reddm/' + args.user_table + '/dtm=%s' % args.dsnodash
+    # user_features = pq.ParquetDataset(user_table_path, filesystem=s3).read().to_pandas()
+    #
+    # device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
+    # device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
+    #
+    # relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
+    # relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
+    #
+    # label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
+    # labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
+    #
+    # # Build graph
+    # graph_builder = PandasGraphBuilder()
+    # graph_builder.add_entities(user_features, 'user_entity_id', 'user')
+    # graph_builder.add_entities(device_features, 'device_entity_id', 'device')
+    # graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
+    # graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
+    #
+    # g = graph_builder.build()
+    # # Create csr/coo/csc formats before launching sampling processes
+    # # This avoids creating certain formats in each data loader process, which saves momory and CPU.
+    # dgl.save_graphs('./dataset/1d_%s_graph' % args.dsnodash, [g])
 
-    device_table_path = 's3://xhs.alpha/reddm/' + args.device_table + '/dtm=%s' % args.dsnodash
-    device_features = pq.ParquetDataset(device_table_path, filesystem=s3).read().to_pandas()
+    # # Assign features.
+    # user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
+    # device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
+    # labels = labels.values
+    # pos_label_count = np.count_nonzero(labels[:, 1] > 0)
+    # neg_labels = labels[labels[:, 1] == 0]
+    # neg_labels = neg_labels[np.random.randint(neg_labels.shape[0], size=pos_label_count*args.sample_ratio), :]
+    # labels = np.vstack((labels[labels[:, 1] > 0], neg_labels))
+    # np.savez_compressed('./dataset/1d_%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
 
-    relation_table_path = 's3://xhs.alpha/reddm/' + args.relation_table + '/dtm=%s' % args.dsnodash
-    relation_df = pq.ParquetDataset(relation_table_path, filesystem=s3).read().to_pandas()
-
-    label_table_path = 's3://xhs.alpha/reddm/' + args.label_table + '/dtm=%s' % args.dsnodash
-    labels = pq.ParquetDataset(label_table_path, filesystem=s3).read().to_pandas()
-
-    # Build graph
-    graph_builder = PandasGraphBuilder()
-    graph_builder.add_entities(user_features, 'user_entity_id', 'user')
-    graph_builder.add_entities(device_features, 'device_entity_id', 'device')
-    graph_builder.add_binary_relations(relation_df, 'user_entity_id', 'device_entity_id', 'used')
-    graph_builder.add_binary_relations(relation_df, 'device_entity_id', 'user_entity_id', 'used-by')
-
-    g = graph_builder.build()
-    # Create csr/coo/csc formats before launching sampling processes
-    # This avoids creating certain formats in each data loader process, which saves momory and CPU.
+    g = dgl.load_graphs('./dataset/1d_%s_graph' % args.dsnodash)[0]
     g.create_formats_()
-
-    # construct subgraph for labeled computation probably save some memory of storing features
-    # g = construct_computation_graph(g, n_layers, labels[label_entity_col_name].values, label_entity_type)
-
-    # Assign features.
-    user_features = user_features.sort_values(by='user_entity_id').values[:, 1:]
-    device_features = device_features.sort_values(by='device_entity_id').values[:, 1:]
-    labels = labels.values
-    pos_label_count = np.count_nonzero(labels[:, 1] > 0)
-    neg_labels = labels[labels[:, 1] == 0]
-    neg_labels = neg_labels[np.random.randint(neg_labels.shape[0], size=pos_label_count*args.sample_ratio), :]
-    labels = np.vstack((labels[labels[:, 1] > 0], neg_labels))
+    np_ds = np.load('./dataset/1d_%s.npz' % args.dsnodash)
+    user_features, device_features, labels = np_ds['user_f'], np_ds['device_f'], np_ds['labels']
 
     val_num, test_num = labels.shape[0] // 10, labels.shape[0] // 10
     n_classes = labels[:, 1].max() + 1
@@ -100,9 +103,7 @@ if __name__ == '__main__':
     expand_labels[labels[:, 0]] = labels[:, 1]
     labels = torch.from_numpy(expand_labels)
     labels = torch.unsqueeze(labels, 1)
-    np.savez_compressed('./dataset/1d%s' % args.dsnodash, user_f=user_features, device_f=device_features, labels=labels)
-    dgl.save_graphs('./dataset/1d_%s_graph' % args.dsnodash, [g])
-    #
+
     # user_features = F.pad(torch.tensor(user_features, device=device, dtype=torch.float32), (0, num_device_feature))
     # device_features = F.pad(torch.tensor(device_features, device=device, dtype=torch.float32), (num_user_feature, 0))
     user_features = torch.from_numpy(user_features).type(torch.float32)     # user_features too large to fit in gpu memory
@@ -111,7 +112,7 @@ if __name__ == '__main__':
 
     # g.edges['used'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
     # g.edges['used-by'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
-    del relation_df
+    # del relation_df
 
     # prepare for training
     data = train_idx, val_idx, test_idx, num_user_feature + num_device_feature, num_user_feature, num_device_feature, \
