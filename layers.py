@@ -1,7 +1,23 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import dgl.nn.pytorch as dglnn
 import dgl.function as fn
+
+
+class WeightedSAGEConv(nn.Module):
+    def __init__(self, in_feat, out_feat):
+        super(WeightedSAGEConv, self).__init__()
+        self.linear = nn.Linear(in_feat * 2, out_feat)
+
+    def forward(self, g, h, weights):
+        with g.local_scope():
+            g.ndata['h'] = h
+            g.edata['w'] = weights.float()
+            g.update_all(message_func=fn.u_mul_e('h', 'w', 'm'), reduce_func=fn.mean('m', 'h_N'))
+            h_N = g.ndata['h_N']
+            h_total = torch.cat([h, h_N], dim=1)
+            return self.linear(h_total)
 
 class RGCNLayer(nn.Module):
     """

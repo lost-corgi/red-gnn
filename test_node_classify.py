@@ -18,13 +18,13 @@ if __name__ == '__main__':
     argparser.add_argument('--input-dim', type=int, default=10)
     argparser.add_argument('--hidden-dim', type=int, default=16)
     argparser.add_argument('--num-layers', type=int, default=3)
-    argparser.add_argument('--fan-out', type=str, default='5,10,15')
+    argparser.add_argument('--fan-out', type=str, default='10,10,10')
     argparser.add_argument('--batch-size', type=int, default=64)
     argparser.add_argument('--val-batch-size', type=int, default=128)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.01)
-    argparser.add_argument('--dropout', type=float, default=0.2)
+    argparser.add_argument('--lr', type=float, default=0.001)
+    argparser.add_argument('--dropout', type=float, default=0)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--save-pred', type=str, default='')
@@ -58,6 +58,9 @@ if __name__ == '__main__':
     train_mask = g.nodes[category].data.pop('train_mask')
     train_idx = th.nonzero(train_mask, as_tuple=False).squeeze()
     labels = g.nodes[category].data.pop('labels')
+
+    # for etype in g.canonical_etypes:
+    #     g.edges[etype].data['weights'] = th.ones(g.num_edges(etype))
     # remove below to test multi-class case
     labels[labels >= 1] = 1
     labels[labels < 1] = 0

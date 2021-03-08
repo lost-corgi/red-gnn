@@ -25,7 +25,7 @@ if __name__ == '__main__':
     argparser.add_argument('--val-batch-size', type=int, default=10000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=1)
-    argparser.add_argument('--lr', type=float, default=0.01)
+    argparser.add_argument('--lr', type=float, default=0.001)
     argparser.add_argument('--dropout', type=float, default=0)
     argparser.add_argument('--num-workers', type=int, default=0,
                            help="Number of sampling processes. Use 0 for no extra process.")
@@ -100,8 +100,8 @@ if __name__ == '__main__':
     device_features = torch.from_numpy(device_features).type(torch.float32).to(device)
     entity_features = {'user': user_features, 'device': device_features}
 
-    # g.edges['used'].data['weight'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
-    # g.edges['used-by'].data['weight'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
+    # g.edges['used'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
+    # g.edges['used-by'].data['weights'] = torch.ShortTensor(relation_df['relation_edge_weight'].values)
     del relation_df
 
     # prepare for training
